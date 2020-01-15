@@ -112,12 +112,13 @@ void main(void)
             // Acc が On の場合は、常にタイマーをリセット
             restartTimer1();
             enableAcc2 = true;
-            TMR1IE = 1;                     // タイマー１割り込みを許可する
+            TMR1IE = 1;        // タイマー１割り込みを許可する
         }
         else if ( IN_RESET == 1 )
         {
             // リセットボタンが押された時は、Acc2 を Off に
             enableAcc2 = false;
+            TMR1IE = 0;        // タイマー１割り込みを禁止に
         }
 
         OUT_ACC2 = enableAcc2 ? 1 : 0;
