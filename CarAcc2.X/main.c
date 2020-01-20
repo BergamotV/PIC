@@ -36,9 +36,9 @@
 
 #define _XTAL_FREQ 31000      // 31kHz
 
-#define IN_ACC   RA0  // 車のアクセサリー電源
-#define IN_RESET RA1  // リセットボタン
-#define OUT_ACC2 RA2  // Acc2の制御出力
+#define IN_ACC   RA5  // 車のアクセサリー電源
+#define IN_RESET RA4  // リセットボタン
+#define OUT_ACC2 RA0  // Acc2の制御出力
 
 
 const long t1cycle = 65536 - (31000/4); // 内部クロック31k,分周比1/4
@@ -57,8 +57,8 @@ void initSystem()
     OSCCONbits.SCS    = 0;
     PORTA  = 0x00;                  // PORTAを初期化
     ANSELA = 0b00000000;            // アナログ入力モードを無効に
-    TRISA  = 0b00000011;            // PORTAの入出力設定:RA0, RA1 が入力
-    WPUA   = 0b00000011;            // WEAK PULL-UP PORTA REGISTER
+    TRISA  = 0b00110000;            // PORTAの入出力設定:RA5, RA4 が入力
+    WPUA   = 0b00000000;            // WEAK PULL-UP PORTA REGISTER
     // 1秒に1度割り込みが走るようにする
     T1CONbits.T1CKPS  = 0;          // プリスケーラ
     T1CONbits.T1OSCEN = 0;          // 外部発振回路の作動
