@@ -12,8 +12,8 @@
 // CONFIG1
 #pragma config FOSC = INTOSC    // Oscillator Selection (INTOSC oscillator: I/O function on CLKIN pin)
 #pragma config WDTE = OFF       // Watchdog Timer Enable (WDT disabled)
-#pragma config PWRTE = ON       // Power-up Timer Enable (PWRT enabled)
-#pragma config MCLRE = OFF      // MCLR Pin Function Select (MCLR/VPP pin function is digital input)
+#pragma config PWRTE = OFF      // Power-up Timer Enable (PWRT enabled)
+#pragma config MCLRE = ON       // MCLR Pin Function Select (MCLR/VPP pin function is digital input)
 #pragma config CP = OFF         // Flash Program Memory Code Protection (Program memory code protection is disabled)
 #pragma config CPD = OFF        // Data Memory Code Protection (Data memory code protection is disabled)
 #pragma config BOREN = ON       // Brown-out Reset Enable (Brown-out Reset enabled)
@@ -26,7 +26,7 @@
 #pragma config PLLEN = OFF      // PLL Enable (4x PLL disabled)
 #pragma config STVREN = ON      // Stack Overflow/Underflow Reset Enable (Stack Overflow or Underflow will cause a Reset)
 #pragma config BORV = LO        // Brown-out Reset Voltage Selection (Brown-out Reset Voltage (Vbor), low trip point selected.)
-#pragma config LVP = ON         // Low-Voltage Programming Enable (Low-voltage programming enabled)
+#pragma config LVP = OFF        // Low-Voltage Programming Enable (Low-voltage programming enabled)
 
 // #pragma config statements should precede project file includes.
 // Use project enums instead of #define for ON and OFF.
@@ -43,6 +43,7 @@
 
 const long t1cycle = 65536 - (31000/4); // 内部クロック31k,分周比1/4
 const int delaySeconds = 5 * 60 * 60;   // 5時間
+//const int delaySeconds = 5;   // テスト用：5秒
 
 int timer;
 bool enableAcc2;
@@ -57,7 +58,7 @@ void initSystem()
     PORTA  = 0x00;                  // PORTAを初期化
     ANSELA = 0b00000000;            // アナログ入力モードを無効に
     TRISA  = 0b00000011;            // PORTAの入出力設定:RA0, RA1 が入力
-    
+    WPUA   = 0b00000011;            // WEAK PULL-UP PORTA REGISTER
     // 1秒に1度割り込みが走るようにする
     T1CONbits.T1CKPS  = 0;          // プリスケーラ
     T1CONbits.T1OSCEN = 0;          // 外部発振回路の作動
@@ -70,36 +71,48 @@ void initSystem()
     INTCONbits.PEIE = 1;            // 割り込みを許可
 }
 
-// Timer1設定
-inline void restartTimer1()
+// Timer1 カウンタの設定
+void restartTimer()
 {
-    // タイマーのカウンタリセット
-    timer  = delaySeconds;
-    TMR1   = t1cycle;               //タイマー１の初期化
+    timer  = delaySeconds;          //待つ秒数のリセット
+    TMR1   = t1cycle;               //タイマーのカウンタリセット
 }
 
+// Acc2 を On にする
+void OnAccessary2( void )
+{
+    restartTimer();
+    enableAcc2 = true;
+    TMR1IE = 1;                     // タイマー１割り込みを許可する
+}
+
+// Acc2 を Off にする
+void OffAccessary2( void )
+{
+    enableAcc2 = false;
+    TMR1IE = 0;                     // タイマー１割り込みを無効化する
+}
 
 // 割り込み処理(1秒ごとに呼ばれる)
 void __interrupt() interruptFunc( void )
 {
     GIE = 0;
-    if(TMR1IF == 1)
+    if(TMR1IF == 1)                 //タイマー１の割り込みか？
     {
-        TMR1   = t1cycle;               //タイマー１の値初期化
+        TMR1 = t1cycle;             //タイマー１のカウンタ初期化
 
-        timer--;
-        if ( timer == 0 )
+        if ( --timer <= 0 )
         {
-            enableAcc2 = false;
-            TMR1IE = 0;               // タイマー１割り込みを無効化する
+            // 時間が経過した
+            OffAccessary2();
         }
-        TMR1IF = 0;                   //割り込みフラグを落とす
+        TMR1IF = 0;                 //タイマー１割り込みフラグを落とす
     }
     GIE = 1;
 }
             
-
-void main(void)
+// main
+void main( void )
 {
     initSystem();
 
@@ -110,15 +123,12 @@ void main(void)
         if ( IN_ACC == 1 )
         {
             // Acc が On の場合は、常にタイマーをリセット
-            restartTimer1();
-            enableAcc2 = true;
-            TMR1IE = 1;        // タイマー１割り込みを許可する
+            OnAccessary2();
         }
         else if ( IN_RESET == 1 )
         {
             // リセットボタンが押された時は、Acc2 を Off に
-            enableAcc2 = false;
-            TMR1IE = 0;        // タイマー１割り込みを禁止に
+            OffAccessary2();
         }
 
         OUT_ACC2 = enableAcc2 ? 1 : 0;
