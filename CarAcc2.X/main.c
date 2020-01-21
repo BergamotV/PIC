@@ -120,12 +120,12 @@ void main( void )
  
     while(1)
     {
-        if ( IN_ACC == 1 )
+        if ( IN_ACC == 0 )  // 0:AccOn
         {
             // Acc が On の場合は、常にタイマーをリセット
             OnAccessary2();
         }
-        else if ( IN_RESET == 1 )
+        else if ( IN_RESET == 0 )  // 0:Reset
         {
             // リセットボタンが押された時は、Acc2 を Off に
             OffAccessary2();
